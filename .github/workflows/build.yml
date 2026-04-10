@@ -16,7 +16,11 @@ jobs:
     runs-on: ubuntu-24.04-arm
 
     env:
-      KEYGEN_PRODUCT_TOKEN: ${{ secrets.KEYGEN_PRODUCT_TOKEN }}
+      KEYGEN_PRODUCT_TOKEN:        ${{ secrets.KEYGEN_PRODUCT_TOKEN }}
+      KEYGEN_ACCOUNT_ID:           ${{ secrets.KEYGEN_ACCOUNT_ID }}
+      KEYGEN_COMMERCIAL_POLICY_ID: ${{ secrets.KEYGEN_COMMERCIAL_POLICY_ID }}
+      KEYGEN_TRIAL_POLICY_ID:      ${{ secrets.KEYGEN_TRIAL_POLICY_ID }}
+      KEYGEN_PRODUCT_ID:           ${{ secrets.KEYGEN_PRODUCT_ID }}
 
     steps:
     # ── 1. Code auschecken ────────────────────────────────────────────────────
@@ -47,7 +51,11 @@ jobs:
         cmake -B build -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_TIMESTAMP="$TS" \
-          -DKEYGEN_PRODUCT_TOKEN="${KEYGEN_PRODUCT_TOKEN}"
+          -DKEYGEN_PRODUCT_TOKEN="${KEYGEN_PRODUCT_TOKEN}" \
+          -DKEYGEN_ACCOUNT_ID="${KEYGEN_ACCOUNT_ID}" \
+          -DKEYGEN_COMMERCIAL_POLICY_ID="${KEYGEN_COMMERCIAL_POLICY_ID}" \
+          -DKEYGEN_TRIAL_POLICY_ID="${KEYGEN_TRIAL_POLICY_ID}" \
+          -DKEYGEN_PRODUCT_ID="${KEYGEN_PRODUCT_ID}"
 
     # ── 4. Bauen ──────────────────────────────────────────────────────────────
     - name: Build
