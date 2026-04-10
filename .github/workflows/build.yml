@@ -30,28 +30,42 @@ jobs:
       run: |
         sudo dpkg --add-architecture arm64
 
-        # Alle bestehenden Quellen auf amd64 beschraenken (inkl. security.ubuntu.com)
-        sudo sed -i \
-          -e 's|^deb \(https\?://\)|deb [arch=amd64] \1|' \
-          -e 's|^deb \[arch=[^]]*\]|deb [arch=amd64]|' \
-          /etc/apt/sources.list 2>/dev/null || true
-
-        for f in /etc/apt/sources.list.d/*.list; do
+        # Vorhandene .list Quellen auf amd64 einschraenken
+        [ -f /etc/apt/sources.list ] && \
           sudo sed -i \
             -e 's|^deb \(https\?://\)|deb [arch=amd64] \1|' \
             -e 's|^deb \[arch=[^]]*\]|deb [arch=amd64]|' \
-            "$f" 2>/dev/null || true
+            /etc/apt/sources.list || true
+
+        for f in /etc/apt/sources.list.d/*.list; do
+          [ -f "$f" ] && sudo sed -i \
+            -e 's|^deb \(https\?://\)|deb [arch=amd64] \1|' \
+            -e 's|^deb \[arch=[^]]*\]|deb [arch=amd64]|' \
+            "$f" || true
+        done
+
+        # DEB822-Format (.sources) ebenfalls einschraenken
+        for f in /etc/apt/sources.list.d/*.sources; do
+          [ -f "$f" ] && sudo sed -i \
+            -e 's|^Architectures:.*|Architectures: amd64|' \
+            "$f" || true
+          # Falls kein Architectures-Feld: hinzufuegen
+          [ -f "$f" ] && grep -q "^Architectures:" "$f" || \
+            sudo sed -i '/^URIs:/i Architectures: amd64' "$f" 2>/dev/null || true
         done
 
         # ARM64 Paketquellen via ports.ubuntu.com hinzufuegen
-        printf 'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse\n' \
+        printf '%s\n%s\n%s\n' \
+          'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse' \
+          'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse' \
+          'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main restricted universe multiverse' \
           | sudo tee /etc/apt/sources.list.d/arm64-ports.list > /dev/null
-        printf 'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse\n' \
-          | sudo tee -a /etc/apt/sources.list.d/arm64-ports.list > /dev/null
-        printf 'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main restricted universe multiverse\n' \
-          | sudo tee -a /etc/apt/sources.list.d/arm64-ports.list > /dev/null
 
-        sudo apt-get update -qq
+        # Update - ignoriere Fehler bei nicht-existenten arm64 Indizes
+        sudo apt-get update -qq 2>&1 | grep -v "^E: Failed to fetch" | grep -v "arm64.*404" || true
+        # Zweiter Versuch mit Fehlertoleranz
+        sudo apt-get update -q --ignore-missing 2>/dev/null || \
+          sudo apt-get update -q -o APT::Get::List-Cleanup=0 || true
 
     - name: Install cross-compilation toolchain and ARM64 Qt6
       run: |
@@ -214,10 +228,7 @@ jobs:
           - `start.sh` - Starter-Skript mit Bibliothekspfad
           - `lib/` - Qt6-Bibliotheken
           - `Data/` - JSON-Aufzeichnungen hier ablegen
-          - `Devices/` - Einstellungen
-          - `TestData/` - Beispielprofile
           - `docs/EULA.pdf` - Endnutzer-Lizenzvertrag
-          - `docs/LICENSE.txt` - Lizenzinformationen
         files: VCProfileViewer_Biegewinkel_linux_arm64_v1.0-*.tar.gz
         draft:       false
         prerelease:  false
