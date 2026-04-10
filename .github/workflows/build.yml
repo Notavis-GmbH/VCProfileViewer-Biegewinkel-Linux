@@ -123,7 +123,24 @@ jobs:
         set(Qt6_DIR /usr/lib/aarch64-linux-gnu/cmake/Qt6)
         set(QT_HOST_PATH /usr)
         set(QT_HOST_PATH_CMAKE_DIR /usr/lib/x86_64-linux-gnu/cmake)
+        # OpenGL targets fuer Cross-Compilation manuell setzen
+        set(OPENGL_INCLUDE_DIR /usr/include)
+        set(OPENGL_opengl_LIBRARY /usr/lib/aarch64-linux-gnu/libGL.so)
+        set(OPENGL_gl_LIBRARY /usr/lib/aarch64-linux-gnu/libGL.so)
+        set(OpenGL_GL_PREFERENCE GLVND)
         EOF
+        sed -i 's/^        //' /tmp/aarch64-toolchain.cmake
+        # OpenGL::GL als IMPORTED Target vorab definieren damit Qt6 es findet
+        cat >> /tmp/aarch64-toolchain.cmake << 'EOF2'
+        # Workaround: OpenGL::GL IMPORTED target
+        if(NOT TARGET OpenGL::GL)
+          add_library(OpenGL::GL SHARED IMPORTED)
+          set_target_properties(OpenGL::GL PROPERTIES
+            IMPORTED_LOCATION /usr/lib/aarch64-linux-gnu/libGL.so
+            INTERFACE_INCLUDE_DIRECTORIES /usr/include
+          )
+        endif()
+        EOF2
         sed -i 's/^        //' /tmp/aarch64-toolchain.cmake
         echo "Toolchain created"
 
