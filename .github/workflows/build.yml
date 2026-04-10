@@ -132,6 +132,8 @@ jobs:
         cmake -B build -G Ninja \
           -DCMAKE_TOOLCHAIN_FILE=/tmp/aarch64-toolchain.cmake \
           -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_PREFIX_PATH=/usr/lib/aarch64-linux-gnu/cmake \
+          -DQt6_DIR=/usr/lib/aarch64-linux-gnu/cmake/Qt6 \
           -DBUILD_TIMESTAMP="$TS" \
           -DKEYGEN_PRODUCT_TOKEN="${KEYGEN_PRODUCT_TOKEN}" \
           -DKEYGEN_ACCOUNT_ID="${KEYGEN_ACCOUNT_ID}" \
