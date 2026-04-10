@@ -148,6 +148,9 @@ jobs:
           -DQt6_DIR=/usr/lib/aarch64-linux-gnu/cmake/Qt6 \
           -DOPENGL_INCLUDE_DIR=/usr/include \
           -DOPENGL_opengl_LIBRARY=/usr/lib/aarch64-linux-gnu/libGL.so \
+          -DOPENGL_gl_LIBRARY=/usr/lib/aarch64-linux-gnu/libGL.so \
+          -DOPENGL_glx_LIBRARY=/usr/lib/aarch64-linux-gnu/libGL.so \
+          -DOPENGL_GL_PREFERENCE=LEGACY \
           -DBUILD_TIMESTAMP="$TS" \
           -DKEYGEN_PRODUCT_TOKEN="${KEYGEN_PRODUCT_TOKEN}" \
           -DKEYGEN_ACCOUNT_ID="${KEYGEN_ACCOUNT_ID}" \
