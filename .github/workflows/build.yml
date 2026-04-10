@@ -126,7 +126,25 @@ jobs:
         set(QT_HOST_PATH_CMAKE_DIR /usr/lib/x86_64-linux-gnu/cmake)
         EOF
         sed -i 's/^        //' /tmp/aarch64-toolchain.cmake
-        echo "Toolchain created"
+
+        # Preload-Datei: OpenGL::GL und OpenGL::OpenGL als INTERFACE targets
+        # (add_library ist in Preload-Dateien erlaubt, nicht in Toolchain-Dateien)
+        cat > /tmp/opengl-preload.cmake << 'EOF'
+        if(NOT TARGET OpenGL::GL)
+          add_library(OpenGL::GL INTERFACE IMPORTED)
+          set_target_properties(OpenGL::GL PROPERTIES
+            INTERFACE_LINK_LIBRARIES /usr/lib/aarch64-linux-gnu/libGL.so
+          )
+        endif()
+        if(NOT TARGET OpenGL::OpenGL)
+          add_library(OpenGL::OpenGL INTERFACE IMPORTED)
+          set_target_properties(OpenGL::OpenGL PROPERTIES
+            INTERFACE_LINK_LIBRARIES /usr/lib/aarch64-linux-gnu/libGL.so
+          )
+        endif()
+        EOF
+        sed -i 's/^        //' /tmp/opengl-preload.cmake
+        echo "Toolchain and preload created"
 
     - name: Debug Qt6 installation
       run: |
@@ -143,6 +161,7 @@ jobs:
         TS=$(date -u +"%Y-%m-%d-%H%M")
         echo "BUILD_TS=$TS" >> $GITHUB_ENV
         cmake -B build -G Ninja \
+          -C /tmp/opengl-preload.cmake \
           -DCMAKE_TOOLCHAIN_FILE=/tmp/aarch64-toolchain.cmake \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_PREFIX_PATH=/usr/lib/aarch64-linux-gnu/cmake \
