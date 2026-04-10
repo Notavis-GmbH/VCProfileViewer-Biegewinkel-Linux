@@ -26,23 +26,35 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install cross-compilation toolchain and ARM64 Qt6
+    - name: Configure apt for ARM64 cross-compilation
       run: |
         sudo dpkg --add-architecture arm64
 
-        printf '%s\n' \
-          'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse' \
-          'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse' \
-          | sudo tee /etc/apt/sources.list.d/arm64-ports.list > /dev/null
-
-        sudo sed -i 's/^deb \[/deb [arch=amd64,i386 /; s/^deb http/deb [arch=amd64,i386] http/' \
+        # Alle bestehenden Quellen auf amd64 beschraenken (inkl. security.ubuntu.com)
+        sudo sed -i \
+          -e 's|^deb \(https\?://\)|deb [arch=amd64] \1|' \
+          -e 's|^deb \[arch=[^]]*\]|deb [arch=amd64]|' \
           /etc/apt/sources.list 2>/dev/null || true
-        sudo find /etc/apt/sources.list.d/ -name "*.list" \
-          ! -name "arm64-ports.list" \
-          -exec sed -i 's/^deb \[/deb [arch=amd64 /; s/^deb http/deb [arch=amd64] http/' {} \; 2>/dev/null || true
+
+        for f in /etc/apt/sources.list.d/*.list; do
+          sudo sed -i \
+            -e 's|^deb \(https\?://\)|deb [arch=amd64] \1|' \
+            -e 's|^deb \[arch=[^]]*\]|deb [arch=amd64]|' \
+            "$f" 2>/dev/null || true
+        done
+
+        # ARM64 Paketquellen via ports.ubuntu.com hinzufuegen
+        printf 'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse\n' \
+          | sudo tee /etc/apt/sources.list.d/arm64-ports.list > /dev/null
+        printf 'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse\n' \
+          | sudo tee -a /etc/apt/sources.list.d/arm64-ports.list > /dev/null
+        printf 'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main restricted universe multiverse\n' \
+          | sudo tee -a /etc/apt/sources.list.d/arm64-ports.list > /dev/null
 
         sudo apt-get update -qq
 
+    - name: Install cross-compilation toolchain and ARM64 Qt6
+      run: |
         sudo apt-get install -y --no-install-recommends \
           cmake ninja-build \
           gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
