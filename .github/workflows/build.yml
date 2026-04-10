@@ -1,4 +1,4 @@
-name: Build VC3DProfileViewer Biegewinkel (Linux ARM64 – Raspberry Pi 5)
+name: Build VC3DProfileViewer Biegewinkel (Linux ARM64 - Raspberry Pi 5)
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build-linux-arm64:
-    name: Build & Package (Linux ARM64 – Cross Compilation)
+    name: Build & Package (Linux ARM64 - Cross Compilation)
     runs-on: ubuntu-24.04
 
     env:
@@ -23,23 +23,18 @@ jobs:
       KEYGEN_PRODUCT_ID:           ${{ secrets.KEYGEN_PRODUCT_ID }}
 
     steps:
-    # ── 1. Code auschecken ────────────────────────────────────────────────────
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # ── 2. Cross-Toolchain und ARM64-Pakete installieren ─────────────────────
     - name: Install cross-compilation toolchain and ARM64 Qt6
       run: |
-        # ARM64-Architektur in dpkg registrieren
         sudo dpkg --add-architecture arm64
 
-        # ARM64-Paketquellen hinzufügen
-        sudo tee /etc/apt/sources.list.d/arm64-ports.list > /dev/null << 'EOF'
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse
-EOF
+        printf '%s\n' \
+          'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse' \
+          'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse' \
+          | sudo tee /etc/apt/sources.list.d/arm64-ports.list > /dev/null
 
-        # Standard-Quellen auf amd64 beschränken
         sudo sed -i 's/^deb \[/deb [arch=amd64,i386 /; s/^deb http/deb [arch=amd64,i386] http/' \
           /etc/apt/sources.list 2>/dev/null || true
         sudo find /etc/apt/sources.list.d/ -name "*.list" \
@@ -48,14 +43,12 @@ EOF
 
         sudo apt-get update -qq
 
-        # Cross-Compiler (amd64)
         sudo apt-get install -y --no-install-recommends \
           cmake ninja-build \
           gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
           binutils-aarch64-linux-gnu \
           patchelf file
 
-        # Qt6 + Deps für ARM64
         sudo apt-get install -y --no-install-recommends \
           libqt6core6t64:arm64 \
           libqt6gui6t64:arm64 \
@@ -82,38 +75,31 @@ EOF
           libxkbcommon-dev:arm64 \
           libxkbcommon-x11-dev:arm64
 
-        # Host-seitige Qt6-Tools (moc, rcc, uic) für amd64
         sudo apt-get install -y --no-install-recommends \
           qt6-base-dev \
           qt6-base-dev-tools
 
-    # ── 3. CMake Toolchain-Datei erstellen ────────────────────────────────────
     - name: Create CMake toolchain file
       run: |
         cat > /tmp/aarch64-toolchain.cmake << 'EOF'
-set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR aarch64)
-
-set(CMAKE_C_COMPILER   aarch64-linux-gnu-gcc)
-set(CMAKE_CXX_COMPILER aarch64-linux-gnu-g++)
-set(CMAKE_STRIP        aarch64-linux-gnu-strip)
-
-set(CMAKE_SYSROOT /usr/aarch64-linux-gnu)
-set(CMAKE_FIND_ROOT_PATH /usr/aarch64-linux-gnu /usr/lib/aarch64-linux-gnu)
-
-set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
-
-# Qt6: Cross-compiled Libs, Host-Tools
-set(Qt6_DIR /usr/lib/aarch64-linux-gnu/cmake/Qt6)
-set(QT_HOST_PATH /usr/lib/x86_64-linux-gnu/cmake)
-set(QT_HOST_PATH_CMAKE_DIR /usr/lib/x86_64-linux-gnu/cmake)
-EOF
+        set(CMAKE_SYSTEM_NAME Linux)
+        set(CMAKE_SYSTEM_PROCESSOR aarch64)
+        set(CMAKE_C_COMPILER   aarch64-linux-gnu-gcc)
+        set(CMAKE_CXX_COMPILER aarch64-linux-gnu-g++)
+        set(CMAKE_STRIP        aarch64-linux-gnu-strip)
+        set(CMAKE_SYSROOT /usr/aarch64-linux-gnu)
+        set(CMAKE_FIND_ROOT_PATH /usr/aarch64-linux-gnu /usr/lib/aarch64-linux-gnu)
+        set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+        set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+        set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+        set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+        set(Qt6_DIR /usr/lib/aarch64-linux-gnu/cmake/Qt6)
+        set(QT_HOST_PATH /usr/lib/x86_64-linux-gnu/cmake)
+        set(QT_HOST_PATH_CMAKE_DIR /usr/lib/x86_64-linux-gnu/cmake)
+        EOF
+        sed -i 's/^        //' /tmp/aarch64-toolchain.cmake
         echo "Toolchain created"
 
-    # ── 4. CMake konfigurieren ────────────────────────────────────────────────
     - name: Configure CMake
       run: |
         TS=$(date -u +"%Y-%m-%d-%H%M")
@@ -128,20 +114,17 @@ EOF
           -DKEYGEN_TRIAL_POLICY_ID="${KEYGEN_TRIAL_POLICY_ID}" \
           -DKEYGEN_PRODUCT_ID="${KEYGEN_PRODUCT_ID}"
 
-    # ── 5. Bauen ──────────────────────────────────────────────────────────────
     - name: Build
       run: cmake --build build --config Release --parallel
 
-    # ── 6. Architektur verifizieren ───────────────────────────────────────────
     - name: Verify ARM64 binary
       run: |
         EXE=$(find build -name "VC3DProfileViewer" -type f | head -1)
         file "$EXE"
         file "$EXE" | grep -q "aarch64" \
-          && echo "✓ aarch64 binary confirmed" \
-          || (echo "✗ not aarch64" && exit 1)
+          && echo "aarch64 binary confirmed" \
+          || (echo "not aarch64" && exit 1)
 
-    # ── 7. Portablen Ordner zusammenstellen ───────────────────────────────────
     - name: Assemble portable package
       run: |
         PKG="VC3DProfileViewer_linux_arm64"
@@ -151,7 +134,6 @@ EOF
         aarch64-linux-gnu-strip "$EXE"
         cp "$EXE" "$PKG/"
 
-        # Qt6-Libs für ARM64 aus dpkg-Sysroot
         QT_LIB="/usr/lib/aarch64-linux-gnu"
         for lib in \
           libQt6Core libQt6Gui libQt6Widgets libQt6Charts \
@@ -163,31 +145,24 @@ EOF
             | head -1 | xargs -I{} cp {} "$PKG/lib/" 2>/dev/null || true
         done
 
-        # TestData, Ressourcen, Docs
         cp -r tests/data/* "$PKG/TestData/" 2>/dev/null || true
         cp resources/logo_notavis.svg "$PKG/resources/" 2>/dev/null || true
-        [ -f README.md ]    && cp README.md    "$PKG/"       || true
-        [ -f docs/EULA.pdf ] && cp docs/EULA.pdf "$PKG/docs/" || true
-        [ -f LICENSE.txt ]  && cp LICENSE.txt  "$PKG/docs/"  || true
+        [ -f README.md ]     && cp README.md     "$PKG/"       || true
+        [ -f docs/EULA.pdf ] && cp docs/EULA.pdf "$PKG/docs/"  || true
+        [ -f LICENSE.txt ]   && cp LICENSE.txt   "$PKG/docs/"  || true
 
         SHA=$(echo "${{ github.sha }}" | cut -c1-7)
         TS="${{ env.BUILD_TS }}"
-        printf "VC3DProfileViewer Biegewinkel Linux ARM64\nBranch: ${{ github.ref_name }}\nCommit: %s\nBuilt : %s UTC\nMethod: Cross-compiled (ubuntu-24.04 → aarch64-linux-gnu)\n" \
+        printf "VC3DProfileViewer Biegewinkel Linux ARM64\nBranch: ${{ github.ref_name }}\nCommit: %s\nBuilt : %s UTC\nMethod: Cross-compiled (ubuntu-24.04 -> aarch64-linux-gnu)\n" \
           "$SHA" "$TS" > "$PKG/VERSION.txt"
 
-    # ── 8. Start-Skript ───────────────────────────────────────────────────────
     - name: Create launcher script
       run: |
         PKG="VC3DProfileViewer_linux_arm64"
-        cat > "$PKG/start.sh" << 'EOF'
-#!/bin/bash
-DIR="$(cd "$(dirname "$0")" && pwd)"
-export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
-exec "$DIR/VC3DProfileViewer" "$@"
-EOF
+        printf '#!/bin/bash\nDIR="$(cd "$(dirname "$0")" && pwd)"\nexport LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"\nexec "$DIR/VC3DProfileViewer" "$@"\n' \
+          > "$PKG/start.sh"
         chmod +x "$PKG/start.sh"
 
-    # ── 9. Artefakt hochladen ─────────────────────────────────────────────────
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
@@ -195,7 +170,6 @@ EOF
         path: VC3DProfileViewer_linux_arm64/
         retention-days: 30
 
-    # ── 10. Release (nur main-Push) ───────────────────────────────────────────
     - name: Create release TAR
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
@@ -209,13 +183,13 @@ EOF
       uses: softprops/action-gh-release@v2
       with:
         tag_name:    build-linux-${{ github.run_number }}
-        name:        "VCProfileViewer Biegewinkel Linux ARM64 – Build #${{ github.run_number }}"
+        name:        "VCProfileViewer Biegewinkel Linux ARM64 - Build #${{ github.run_number }}"
         body: |
-          ## Automatischer Build von `main` – Linux ARM64 (Raspberry Pi 5)
+          ## Automatischer Build von `main` - Linux ARM64 (Raspberry Pi 5)
 
-          **Commit:** `${{ github.sha }}`  
-          **Build:** #${{ github.run_number }}  
-          **Methode:** Cross-Compilation (ubuntu-24.04 → aarch64-linux-gnu)
+          **Commit:** `${{ github.sha }}`
+          **Build:** #${{ github.run_number }}
+          **Methode:** Cross-Compilation (ubuntu-24.04 -> aarch64-linux-gnu)
 
           ### Installation auf Raspberry Pi 5
           ```bash
@@ -224,17 +198,14 @@ EOF
           ```
 
           ### Inhalt
-          - `VC3DProfileViewer` – ausführbare Datei (ARM64)
-          - `start.sh` – Starter-Skript mit Bibliothekspfad
-          - `lib/` – Qt6-Bibliotheken
-          - `Data/` – JSON-Aufzeichnungen hier ablegen
-          - `Devices/` – Einstellungen (wird beim ersten Start erzeugt)
-          - `TestData/` – Beispielprofile für JSON-Wiedergabe
-          - `docs/EULA.pdf` – Endnutzer-Lizenzvertrag
-          - `docs/LICENSE.txt` – Lizenzinformationen
-
-          ### Änderungen
-          Siehe [Commit-History](https://github.com/${{ github.repository }}/commits/main)
+          - `VC3DProfileViewer` - ausfuehrbare Datei (ARM64)
+          - `start.sh` - Starter-Skript mit Bibliothekspfad
+          - `lib/` - Qt6-Bibliotheken
+          - `Data/` - JSON-Aufzeichnungen hier ablegen
+          - `Devices/` - Einstellungen
+          - `TestData/` - Beispielprofile
+          - `docs/EULA.pdf` - Endnutzer-Lizenzvertrag
+          - `docs/LICENSE.txt` - Lizenzinformationen
         files: VCProfileViewer_Biegewinkel_linux_arm64_v1.0-*.tar.gz
         draft:       false
         prerelease:  false
