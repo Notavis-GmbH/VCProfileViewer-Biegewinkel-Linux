@@ -13,7 +13,7 @@ permissions:
 jobs:
   build-linux-arm64:
     name: Build & Package (Linux ARM64 – Cross Compilation)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     env:
       KEYGEN_PRODUCT_TOKEN:        ${{ secrets.KEYGEN_PRODUCT_TOKEN }}
