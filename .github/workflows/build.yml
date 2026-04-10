@@ -88,6 +88,8 @@ jobs:
           libqt6svg6-dev:arm64 \
           libgl-dev:arm64 \
           libgles-dev:arm64 \
+          libglx-dev:arm64 \
+          mesa-common-dev:arm64 \
           libfontconfig1-dev:arm64 \
           libfreetype6-dev:arm64 \
           libx11-dev:arm64 \
@@ -129,12 +131,11 @@ jobs:
       run: |
         echo "=== Qt6 cmake dirs ==="
         find /usr -name "Qt6Config.cmake" 2>/dev/null || echo "Qt6Config.cmake not found"
-        echo "=== aarch64 cmake dir ==="
-        ls /usr/lib/aarch64-linux-gnu/cmake/ 2>/dev/null | grep -i qt || echo "No Qt in cmake dir"
-        echo "=== qt6-base-dev:arm64 files ==="
-        dpkg -L qt6-base-dev 2>/dev/null | grep cmake | head -10 || echo "qt6-base-dev not found via dpkg"
-        echo "=== Installed Qt packages ==="
-        dpkg -l | grep -i "qt6\|qt-6" | awk '{print $2, $3}'
+        echo "=== OpenGL headers ==="
+        find /usr -name "gl.h" -path "*/aarch64*" 2>/dev/null | head -5 || echo "No OpenGL headers for arm64"
+        ls /usr/include/aarch64-linux-gnu/GL/ 2>/dev/null || echo "No GL include dir"
+        echo "=== dpkg OpenGL arm64 ==="
+        dpkg -l | grep -i "libgl.*arm64\|gl-dev.*arm64\|mesa.*arm64" | awk '{print $2, $3}' | head -10
 
     - name: Configure CMake
       run: |
