@@ -10,22 +10,26 @@ add_compile_definitions(BUILD_TIMESTAMP="${BUILD_TIMESTAMP}")
 
 
 # ── Keygen.sh Lizenz-Konfiguration ───────────────────────────────────────────
-# Werte kommen aus CMake-Variablen (lokal) oder GitHub Actions Secrets (CI)
-# Fallback auf leere Strings wenn nicht gesetzt (Demo-Build ohne Lizenz)
-if(NOT DEFINED KEYGEN_ACCOUNT_ID)
-    set(KEYGEN_ACCOUNT_ID          "aa7134fd-36e5-43da-be3d-3d92982aff42")
+# Alle Werte kommen aus CMake-Variablen (lokal via -D) oder GitHub Actions Secrets (CI).
+# Keine Fallback-Hardcodes – bei fehlendem Wert bricht CMake mit Warnung ab.
+if(NOT DEFINED KEYGEN_ACCOUNT_ID OR KEYGEN_ACCOUNT_ID STREQUAL "")
+    message(WARNING "KEYGEN_ACCOUNT_ID not set – license features disabled (Demo build)")
+    set(KEYGEN_ACCOUNT_ID "")
 endif()
 if(NOT DEFINED KEYGEN_PRODUCT_TOKEN)
-    set(KEYGEN_PRODUCT_TOKEN       "")
+    set(KEYGEN_PRODUCT_TOKEN "")
 endif()
-if(NOT DEFINED KEYGEN_COMMERCIAL_POLICY_ID)
-    set(KEYGEN_COMMERCIAL_POLICY_ID "6a941108-33b3-4a7d-8902-0de4db94b697")
+if(NOT DEFINED KEYGEN_COMMERCIAL_POLICY_ID OR KEYGEN_COMMERCIAL_POLICY_ID STREQUAL "")
+    message(WARNING "KEYGEN_COMMERCIAL_POLICY_ID not set")
+    set(KEYGEN_COMMERCIAL_POLICY_ID "")
 endif()
-if(NOT DEFINED KEYGEN_TRIAL_POLICY_ID)
-    set(KEYGEN_TRIAL_POLICY_ID     "1d6c8b85-444d-4db8-b577-4a6ffec682c2")
+if(NOT DEFINED KEYGEN_TRIAL_POLICY_ID OR KEYGEN_TRIAL_POLICY_ID STREQUAL "")
+    message(WARNING "KEYGEN_TRIAL_POLICY_ID not set")
+    set(KEYGEN_TRIAL_POLICY_ID "")
 endif()
-if(NOT DEFINED KEYGEN_PRODUCT_ID)
-    set(KEYGEN_PRODUCT_ID          "c02b35c1-880b-4523-85a0-4e6c41cbef75")
+if(NOT DEFINED KEYGEN_PRODUCT_ID OR KEYGEN_PRODUCT_ID STREQUAL "")
+    message(WARNING "KEYGEN_PRODUCT_ID not set")
+    set(KEYGEN_PRODUCT_ID "")
 endif()
 
 configure_file(
