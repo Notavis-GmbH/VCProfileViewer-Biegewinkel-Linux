@@ -1,0 +1,22 @@
+#pragma once
+
+// =============================================================================
+// keygen_config.h — AUTO-GENERIERT durch CMake / GitHub Actions
+// NICHT manuell bearbeiten. Werte kommen aus CMake-Definitionen oder
+// GitHub Actions Secrets.
+// =============================================================================
+
+namespace KeygenConfig {
+
+constexpr const char* KEYGEN_ACCOUNT_ID          = "@KEYGEN_ACCOUNT_ID@";
+constexpr const char* KEYGEN_PRODUCT_TOKEN        = "@KEYGEN_PRODUCT_TOKEN@";
+constexpr const char* KEYGEN_COMMERCIAL_POLICY_ID = "@KEYGEN_COMMERCIAL_POLICY_ID@";
+constexpr const char* KEYGEN_TRIAL_POLICY_ID      = "@KEYGEN_TRIAL_POLICY_ID@";
+constexpr const char* KEYGEN_PRODUCT_ID           = "@KEYGEN_PRODUCT_ID@";
+constexpr const char* KEYGEN_API_BASE             = "https://api.keygen.sh/v1/accounts/";
+constexpr const char* SETTINGS_LICENSE_KEY        = "license/key";
+constexpr const char* SETTINGS_LICENSE_ID         = "license/id";
+constexpr const char* SETTINGS_LICENSE_TYPE       = "license/type";
+constexpr const char* SETTINGS_TRIAL_EXPIRY       = "license/trialExpiry";
+
+} // namespace KeygenConfig

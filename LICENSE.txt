@@ -1,0 +1,14 @@
+Copyright (c) 2026 NOTAVIS GmbH. Alle Rechte vorbehalten.
+
+Diese Software und der zugehörige Quellcode sind Eigentum der NOTAVIS GmbH
+und unterliegen dem deutschen und internationalen Urheberrecht.
+
+Die Nutzung, Vervielfältigung, Weitergabe oder Modifikation dieser Software
+ist ohne ausdrückliche schriftliche Genehmigung der NOTAVIS GmbH untersagt.
+
+Die Software wird ausschließlich unter den Bedingungen des mit dem Kunden
+geschlossenen Lizenzvertrags bereitgestellt. Unbefugte Nutzung wird zivil-
+und strafrechtlich verfolgt.
+
+Kontakt: patrik.drexel@notavis.com
+Web:     https://www.notavis.com

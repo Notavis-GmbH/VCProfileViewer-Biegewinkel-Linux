@@ -1,0 +1,148 @@
+name: Build VC3DProfileViewer Biegewinkel (Linux ARM64 – Raspberry Pi 5)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux-arm64:
+    name: Build & Package (Linux ARM64)
+    runs-on: ubuntu-24.04-arm
+
+    env:
+      KEYGEN_PRODUCT_TOKEN: ${{ secrets.KEYGEN_PRODUCT_TOKEN }}
+
+    steps:
+    # ── 1. Code auschecken ────────────────────────────────────────────────────
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # ── 2. System-Pakete installieren ─────────────────────────────────────────
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends \
+          cmake ninja-build g++ \
+          qt6-base-dev qt6-charts-dev \
+          libqt6svg6-dev libqt6network6 \
+          libgl1-mesa-dev libgles2-mesa-dev \
+          libfontconfig1-dev libfreetype6-dev \
+          libx11-dev libxext-dev libxrender-dev \
+          libxcb1-dev libxcb-render0-dev libxcb-shape0-dev \
+          libxcb-xfixes0-dev libxcb-util-dev \
+          libxkbcommon-dev libxkbcommon-x11-dev \
+          patchelf
+
+    # ── 3. CMake konfigurieren ────────────────────────────────────────────────
+    - name: Configure CMake
+      run: |
+        TS=$(date -u +"%Y-%m-%d-%H%M")
+        echo "BUILD_TS=$TS" >> $GITHUB_ENV
+        cmake -B build -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_TIMESTAMP="$TS" \
+          -DKEYGEN_PRODUCT_TOKEN="${KEYGEN_PRODUCT_TOKEN}"
+
+    # ── 4. Bauen ──────────────────────────────────────────────────────────────
+    - name: Build
+      run: cmake --build build --config Release --parallel
+
+    # ── 5. Portablen Ordner zusammenstellen ───────────────────────────────────
+    - name: Assemble portable package
+      run: |
+        PKG="VC3DProfileViewer_linux_arm64"
+        mkdir -p "$PKG"/{Data,Devices,TestData,resources,lib}
+
+        EXE=$(find build -name "VC3DProfileViewer" -type f | head -1)
+        cp "$EXE" "$PKG/"
+
+        # Qt-Libs mit patchelf portabel machen
+        QT_LIBS=$(ldd "$EXE" | grep -E "libQt6" | awk '{print $3}' | grep -v "not found")
+        for lib in $QT_LIBS; do
+          cp "$lib" "$PKG/lib/" 2>/dev/null || true
+        done
+
+        # TestData und Ressourcen
+        cp -r tests/data/* "$PKG/TestData/" 2>/dev/null || true
+        cp resources/logo_notavis.svg "$PKG/resources/" 2>/dev/null || true
+        [ -f README.md ] && cp README.md "$PKG/" || true
+
+        SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+        TS="${{ env.BUILD_TS }}"
+        printf "VC3DProfileViewer Biegewinkel Linux ARM64\nBranch: ${{ github.ref_name }}\nCommit: %s\nBuilt : %s UTC\n" \
+          "$SHA" "$TS" > "$PKG/VERSION.txt"
+
+    # ── 6. Start-Skript einbetten ─────────────────────────────────────────────
+    - name: Create launcher script
+      run: |
+        PKG="VC3DProfileViewer_linux_arm64"
+        cat > "$PKG/start.sh" << 'EOF'
+#!/bin/bash
+# Startet VC3DProfileViewer mit den Qt-Libs aus dem Paketverzeichnis
+DIR="$(cd "$(dirname "$0")" && pwd)"
+export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
+exec "$DIR/VC3DProfileViewer" "$@"
+EOF
+        chmod +x "$PKG/start.sh"
+
+    # ── 7. Artefakt hochladen ─────────────────────────────────────────────────
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: VC3DProfileViewer_Basis_linux_arm64_${{ github.sha }}
+        path: VC3DProfileViewer_linux_arm64/
+        retention-days: 30
+
+    # ── 8. Release erstellen (nur main-Push) ──────────────────────────────────
+    - name: Create release TAR
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        TS="${{ env.BUILD_TS }}"
+        SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+        tar -czf "VCProfileViewer_Biegewinkel_linux_arm64_v1.0-${TS}-${SHA}.tar.gz" \
+          -C VC3DProfileViewer_linux_arm64 .
+
+    - name: Create GitHub Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name:    build-linux-${{ github.run_number }}
+        name:        "VCProfileViewer Biegewinkel Linux ARM64 – Build #${{ github.run_number }}"
+        body: |
+          ## Automatischer Build von `main` – Linux ARM64 (Raspberry Pi 5)
+
+          **Commit:** `${{ github.sha }}`  
+          **Build:** #${{ github.run_number }}
+
+          ### Installation auf Raspberry Pi 5
+          ```bash
+          curl -sL https://raw.githubusercontent.com/Notavis-GmbH/VCProfileViewer-Basis/main/install.sh | bash
+          ```
+
+          ### Manuell
+          ```bash
+          tar -xzf VCProfileViewer_Biegewinkel_linux_arm64_v1.0-*.tar.gz
+          ./start.sh
+          ```
+
+          ### Inhalt
+          - `VC3DProfileViewer` – ausführbare Datei (ARM64)
+          - `start.sh` – Starter-Skript mit Bibliothekspfad
+          - `lib/` – Qt6-Bibliotheken
+          - `Data/` – JSON-Aufzeichnungen hier ablegen
+          - `Devices/` – Einstellungen (wird beim ersten Start erzeugt)
+          - `TestData/` – Beispielprofile für JSON-Wiedergabe
+
+          ### Änderungen
+          Siehe [Commit-History](https://github.com/${{ github.repository }}/commits/main)
+        files: VCProfileViewer_Biegewinkel_linux_arm64_v1.0-*.tar.gz
+        draft:       false
+        prerelease:  false
+        make_latest: false
+        overwrite_files: true
