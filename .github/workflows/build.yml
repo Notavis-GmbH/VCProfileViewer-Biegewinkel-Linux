@@ -65,7 +65,7 @@ jobs:
     - name: Assemble portable package
       run: |
         PKG="VC3DProfileViewer_linux_arm64"
-        mkdir -p "$PKG"/{Data,Devices,TestData,resources,lib}
+        mkdir -p "$PKG"/{Data,Devices,TestData,resources,lib,docs}
 
         EXE=$(find build -name "VC3DProfileViewer" -type f | head -1)
         cp "$EXE" "$PKG/"
@@ -80,6 +80,10 @@ jobs:
         cp -r tests/data/* "$PKG/TestData/" 2>/dev/null || true
         cp resources/logo_notavis.svg "$PKG/resources/" 2>/dev/null || true
         [ -f README.md ] && cp README.md "$PKG/" || true
+
+        # Lizenzdokumente
+        [ -f docs/EULA.pdf ]    && cp docs/EULA.pdf    "$PKG/docs/" || true
+        [ -f LICENSE.txt ]      && cp LICENSE.txt      "$PKG/docs/" || true
 
         SHA=$(echo "${{ github.sha }}" | cut -c1-7)
         TS="${{ env.BUILD_TS }}"
@@ -146,6 +150,8 @@ EOF
           - `Data/` – JSON-Aufzeichnungen hier ablegen
           - `Devices/` – Einstellungen (wird beim ersten Start erzeugt)
           - `TestData/` – Beispielprofile für JSON-Wiedergabe
+          - `docs/EULA.pdf` – Endnutzer-Lizenzvertrag
+          - `docs/LICENSE.txt` – Lizenzinformationen
 
           ### Änderungen
           Siehe [Commit-History](https://github.com/${{ github.repository }}/commits/main)
