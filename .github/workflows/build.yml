@@ -160,6 +160,15 @@ jobs:
       run: |
         TS=$(date -u +"%Y-%m-%d-%H%M")
         echo "BUILD_TS=$TS" >> $GITHUB_ENV
+
+        # Patch Qt6 FindWrapOpenGL.cmake: ersetze OpenGL::GL durch OpenGL::OpenGL
+        # (GLVND liefert OpenGL::OpenGL, nicht OpenGL::GL)
+        WRAP_GL=$(find /usr/lib/aarch64-linux-gnu/cmake/Qt6 -name "FindWrapOpenGL.cmake" 2>/dev/null | head -1)
+        if [ -n "$WRAP_GL" ]; then
+          sudo sed -i 's/OpenGL::GL/OpenGL::OpenGL/g' "$WRAP_GL"
+          echo "Patched $WRAP_GL"
+        fi
+
         cmake -B build -G Ninja \
           -C /tmp/opengl-preload.cmake \
           -DCMAKE_TOOLCHAIN_FILE=/tmp/aarch64-toolchain.cmake \
