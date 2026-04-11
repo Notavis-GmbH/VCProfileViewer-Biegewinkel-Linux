@@ -60,6 +60,11 @@ struct VcMetaHeader {
 static constexpr int CMDTYPE_STRING = 0;
 static constexpr int CMDTYPE_DATA   = 100;
 
+// Command parameter IDs (stub definitions)
+static constexpr int CMD_STOP                 = 3;
+static constexpr int CMD_RECEIVE_SENSOR_DATA  = 10;
+static constexpr int CMD_RECEIVE_PRODUCT_DATA = 11;
+
 class VcProtocol {
 public:
     VcProtocol();
