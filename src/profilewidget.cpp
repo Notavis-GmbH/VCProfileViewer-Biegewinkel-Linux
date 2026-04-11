@@ -5,6 +5,7 @@
 #include "licensemanager.h"
 #include "keygen_config.h"
 #include <QSettings>
+#include <QCoreApplication>
 #include <QtSvg/QSvgRenderer>
 #include <QPainter>
 #include <QPainterPath>
